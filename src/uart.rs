@@ -722,7 +722,7 @@ impl Uart {
     /// [`send_stop`]: #method.send_stop
     /// [`OutputPin`]: ../gpio/struct.OutputPin.html
     /// [`InputPin`]: ../gpio/struct.InputPin.html
-    pub fn set_hardware_flow_control(&mut self, hardware_flow_control: bool) -> Result<()> {
+    pub fn set_hardware_flow_control_pins(&mut self, hardware_flow_control: bool) -> Result<()> {
         if hardware_flow_control && self.inner.rtscts_pins.is_none() {
             // Configure and store RTS/CTS GPIO pins for UART0/UART1, so their
             // mode is automatically reset when Uart goes out of scope.
@@ -747,6 +747,9 @@ impl Uart {
             self.inner.rtscts_pins = None;
         }
 
+        self.set_hardware_flow_control(hardware_flow_control)
+    }
+    pub fn set_hardware_flow_control(&mut self, hardware_flow_control: bool) -> Result<()> {
         termios::set_hardware_flow_control(self.inner.fd, hardware_flow_control)?;
 
         self.inner.hardware_flow_control = hardware_flow_control;
