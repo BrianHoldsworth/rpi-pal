@@ -412,6 +412,27 @@ pub struct Uart {
 }
 
 impl Uart {
+    /// Retrieves Uart device node path
+    /// 
+    /// `serial_dev_path` attempts to identify the UART peripheral tied to BCM GPIO 14 and
+    /// 15.
+    pub fn serial_dev_path() -> Result<&'static str> {
+        // On the Raspberry Pi 5, by default /dev/AMA10 will point to the UART on the debug header,
+        // Check if /dev/ttyAMA0 exists first, which would mean the user enabled UART on GPIO14/15
+        // and likely wants to use that one instead.
+        match DeviceInfo::new()?.soc() {
+            SoC::Bcm2712 => {
+                if Path::new("/dev/ttyAMA0").exists() {
+                    Ok("/dev/ttyAMA0")
+                } else {
+                    Ok("/dev/serial0")
+                }
+            },
+            // Older models should always have /dev/ttyAMA0
+            _ => Ok("/dev/ttyAMA0"),
+        }
+
+    }
     /// Constructs a new `Uart`.
     ///
     /// `new` attempts to identify the UART peripheral tied to BCM GPIO 14 and
@@ -422,17 +443,7 @@ impl Uart {
         // On the Raspberry Pi 5, by default /dev/serial0 will point to the UART on the debug header,
         // which is /dev/ttyAMA10. Check if /dev/ttyAMA0 exists first, which would mean the user
         // enabled UART on GPIO14/15 and likely wants to use that one instead.
-        let path = match DeviceInfo::new()?.soc() {
-            SoC::Bcm2712 => {
-                if Path::new("/dev/ttyAMA0").exists() {
-                    "/dev/ttyAMA0"
-                } else {
-                    "/dev/serial0"
-                }
-            }
-            // Older models should use whatever /dev/serial0 points to.
-            _ => "/dev/serial0",
-        };
+        let path = Self::serial_dev_path()?;
 
         Self::with_path(path, baud_rate, parity, data_bits, stop_bits)
     }
