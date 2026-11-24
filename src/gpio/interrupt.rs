@@ -4,6 +4,9 @@ use std::fmt;
 use std::thread;
 use std::time::{Duration, Instant};
 
+use thread_priority::ThreadExt;
+use thread_priority::ThreadPriority;
+
 use crate::gpio::epoll::{epoll_event, Epoll, EventFd, EPOLLERR, EPOLLET, EPOLLIN, EPOLLPRI};
 use crate::gpio::ioctl;
 use crate::gpio::pin::InputPin;
@@ -246,6 +249,7 @@ impl AsyncInterrupt {
         pin: u8,
         trigger: Trigger,
         debounce: Option<Duration>,
+        priority: ThreadPriority,
         mut callback: C,
     ) -> Result<AsyncInterrupt>
     where
@@ -256,6 +260,11 @@ impl AsyncInterrupt {
         let mut interrupt = Interrupt::new(fd, pin, trigger, debounce)?;
 
         let poll_thread = thread::spawn(move || -> Result<()> {
+            thread::current().set_priority_and_policy(
+                thread_priority::unix::ThreadSchedulePolicy::Realtime(
+                        thread_priority::unix::RealtimeThreadSchedulePolicy::Fifo),
+                        priority).ok();
+
             let poll = Epoll::new()?;
 
             // rx becomes readable when the main thread calls notify()

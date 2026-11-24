@@ -3,6 +3,8 @@ use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::time::Duration;
 
+use thread_priority::ThreadPriority;
+
 use super::soft_pwm::SoftPwm;
 use crate::gpio::{
     interrupt::AsyncInterrupt, Bias, Event, GpioState, Level, Mode, Result, Trigger,
@@ -539,6 +541,7 @@ impl InputPin {
         &mut self,
         trigger: Trigger,
         debounce: Option<Duration>,
+        priority: ThreadPriority,
         callback: C,
     ) -> Result<()>
     where
@@ -552,6 +555,7 @@ impl InputPin {
             self.pin(),
             trigger,
             debounce,
+            priority,
             callback,
         )?);
 
